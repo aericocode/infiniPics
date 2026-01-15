@@ -45,10 +45,6 @@ function initKeyboardShortcuts() {
             case 'R': 
                 toggleLoop(); 
                 break;
-            case 'd':
-            case 'D':
-                toggleDesync();
-                break;
             case 'o':
             case 'O':
                 toggleOffset();
