@@ -47,7 +47,7 @@ function addImageSlot() {
             </div>
         </div>
         <div class="resize-handle" id="resize-${index}"
-             onmousedown="startResize(event, ${index})"></div>
+             onmousedown="startResize(event, ${index})" style="display: none;"></div>
         <input type="file" class="folder-input" id="folderInput-${index}" 
                webkitdirectory multiple onchange="loadFolder(${index}, this.files)">
     `;
