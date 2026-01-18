@@ -112,49 +112,134 @@ function addImageSlot() {
 }
 
 async function handleDroppedItems(index, items) {
-    const imageFiles = [];
-    
-    // Process all items to find images
-    const processEntry = async (entry, path = '') => {
-        if (entry.isFile) {
-            return new Promise((resolve) => {
-                entry.file((file) => {
-                    if (isValidImage(file)) {
-                        imageFiles.push(file);
-                    }
-                    resolve();
-                });
-            });
-        } else if (entry.isDirectory) {
-            const dirReader = entry.createReader();
-            return new Promise((resolve) => {
-                const readEntries = () => {
-                    dirReader.readEntries(async (entries) => {
-                        if (entries.length === 0) {
-                            resolve();
-                        } else {
-                            for (const e of entries) {
-                                await processEntry(e, path + entry.name + '/');
-                            }
-                            readEntries(); // Continue reading (readEntries returns max 100 items)
-                        }
-                    });
-                };
-                readEntries();
-            });
-        }
-    };
-    
-    // Get folder name from first item
-    let folderName = 'Folder';
-    
+    // Collect all top-level entries first
+    const topLevelEntries = [];
     for (const item of items) {
         const entry = item.webkitGetAsEntry();
         if (entry) {
-            if (entry.isDirectory) {
-                folderName = entry.name;
+            topLevelEntries.push(entry);
+        }
+    }
+    
+    // Separate folders from loose files
+    const folders = topLevelEntries.filter(e => e.isDirectory);
+    const looseFiles = topLevelEntries.filter(e => e.isFile);
+    
+    // Helper to get all images from a directory
+    const getImagesFromDirectory = async (dirEntry) => {
+        const imageFiles = [];
+        const dirReader = dirEntry.createReader();
+        
+        const readAllEntries = () => new Promise((resolve) => {
+            const allEntries = [];
+            const readBatch = () => {
+                dirReader.readEntries((entries) => {
+                    if (entries.length === 0) {
+                        resolve(allEntries);
+                    } else {
+                        allEntries.push(...entries);
+                        readBatch();
+                    }
+                });
+            };
+            readBatch();
+        });
+        
+        const processEntry = async (entry) => {
+            if (entry.isFile) {
+                return new Promise((resolve) => {
+                    entry.file((file) => {
+                        if (isValidImage(file)) {
+                            imageFiles.push(file);
+                        }
+                        resolve();
+                    });
+                });
+            } else if (entry.isDirectory) {
+                const subEntries = await readAllEntriesFromDir(entry);
+                for (const subEntry of subEntries) {
+                    await processEntry(subEntry);
+                }
             }
+        };
+        
+        const readAllEntriesFromDir = (dir) => {
+            const reader = dir.createReader();
+            return new Promise((resolve) => {
+                const all = [];
+                const read = () => {
+                    reader.readEntries((entries) => {
+                        if (entries.length === 0) {
+                            resolve(all);
+                        } else {
+                            all.push(...entries);
+                            read();
+                        }
+                    });
+                };
+                read();
+            });
+        };
+        
+        const entries = await readAllEntries();
+        for (const entry of entries) {
             await processEntry(entry);
+        }
+        
+        return imageFiles;
+    };
+    
+    // Helper to get image from a file entry
+    const getImageFromFile = (fileEntry) => new Promise((resolve) => {
+        fileEntry.file((file) => {
+            resolve(isValidImage(file) ? file : null);
+        });
+    });
+    
+    // If we have multiple folders, process each into separate slots
+    if (folders.length > 1) {
+        let currentSlotIndex = index;
+        let loadedCount = 0;
+        
+        for (const folder of folders) {
+            const images = await getImagesFromDirectory(folder);
+            
+            if (images.length > 0) {
+                // Ensure slot exists
+                while (currentSlotIndex >= State.imageSlots.length) {
+                    addImageSlot();
+                }
+                
+                processImageFiles(currentSlotIndex, images, folder.name);
+                loadedCount++;
+                currentSlotIndex++;
+            }
+        }
+        
+        if (loadedCount > 0) {
+            showToast(`Loaded ${loadedCount} folders`);
+        } else {
+            showToast('No valid images found');
+        }
+        return;
+    }
+    
+    // Single folder or loose files - original behavior
+    const imageFiles = [];
+    let folderName = 'Folder';
+    
+    // Process single folder
+    if (folders.length === 1) {
+        folderName = folders[0].name;
+        const images = await getImagesFromDirectory(folders[0]);
+        imageFiles.push(...images);
+    }
+    
+    // Process loose files
+    for (const fileEntry of looseFiles) {
+        const file = await getImageFromFile(fileEntry);
+        if (file) {
+            imageFiles.push(file);
         }
     }
     
