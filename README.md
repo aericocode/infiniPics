@@ -4,6 +4,9 @@
 
 View images from multiple folders side-by-side, perfectly synchronized. Drop in your folders and watch the 1st, 2nd, 3rd... image from each folder display together.
 
+**[Launch InfiniPics](https://aericocode.github.io/infiniPics/)** — no install, no uploads, just open and drop your folder of images
+
+
 ---
 
 ## Features
