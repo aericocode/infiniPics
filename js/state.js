@@ -8,14 +8,14 @@ const State = {
     isPlaying: false,
     isLooping: true,
     isDesynced: false,
-    isOffset: false,           // NEW: Offset mode - staggered transitions
+    isOffset: true,           // NEW: Offset mode - staggered transitions
     scalingMode: 'native',
     overlayTimeouts: {},
     gridConfig: { cols: 2, rows: 2 },
     dragCounter: 0,
     resizing: null,
     masterIndex: 0,            // Current image index in sync mode
-    slideDelay: 2000,          // Delay between slides in ms (default 2s)
+    slideDelay: 1500,          // Delay between slides in ms (default 1.5s)
     slideInterval: null,       // Global interval for sync mode
     maxImages: 0,              // Longest folder image count
     offsetIndex: 0,            // Current slot being updated in offset mode
